@@ -46,6 +46,15 @@ app.post('/api/todos', (req, res) => {
   res.status(201).json(newTodo);
 });
 
+// Test cleanup endpoint (only in development) - MUST be before /:id routes
+if (process.env.NODE_ENV !== 'production') {
+  app.delete('/api/todos/reset', (req, res) => {
+    todos = [];
+    nextId = 1;
+    res.json({ message: 'All todos cleared' });
+  });
+}
+
 // PUT /api/todos/:id - Update a todo
 app.put('/api/todos/:id', (req, res) => {
   const id = parseInt(req.params.id);

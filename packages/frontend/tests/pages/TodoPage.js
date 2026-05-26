@@ -44,16 +44,18 @@ export class TodoPage {
     return await this.todoItems.count();
   }
 
-  /**
-   * Toggle completion status of a todo
-   * @param {string} title - The todo title to toggle
-   */
-  async toggleTodo(title) {
-    const todo = this.page.getByRole('listitem').filter({ hasText: title });
-    const checkbox = todo.getByRole('checkbox');
-    await checkbox.click();
-  }
-
+/**
+ * Toggle completion status of a todo
+ * @param {string} title - The todo title to toggle
+ */
+async toggleTodo(title) {
+  const todo = this.page.getByRole('listitem').filter({ hasText: title });
+  const checkbox = todo.getByRole('checkbox');
+  await checkbox.click();
+  
+  // Small wait for React Query mutation
+  await this.page.waitForTimeout(300);
+}
   /**
    * Check if a todo is marked as completed
    * @param {string} title - The todo title to check
@@ -73,6 +75,49 @@ export class TodoPage {
     const todo = this.page.getByRole('listitem').filter({ hasText: title });
     const deleteButton = todo.getByRole('button', { name: /delete/i });
     await deleteButton.click();
+  }
+
+  /**
+   * Start editing a todo
+   * @param {string} title - The todo title to edit
+   */
+  async startEditTodo(title) {
+    const todo = this.page.getByRole('listitem').filter({ hasText: title });
+    const editButton = todo.getByRole('button', { name: /edit/i });
+    await editButton.click();
+    
+    // Wait for edit mode (input field appears)
+    await this.page.waitForSelector('input[type="text"][value]', { state: 'visible' });
+  }
+
+  /**
+   * Edit a todo's title and save
+   * @param {string} oldTitle - The current todo title
+   * @param {string} newTitle - The new title to save
+   */
+  async editTodo(oldTitle, newTitle) {
+    await this.startEditTodo(oldTitle);
+    
+    // Find the input field and change text
+    const input = this.page.locator(`input[type="text"][value="${oldTitle}"]`);
+    await input.fill(newTitle);
+    
+    // Click save button
+    const saveButton = this.page.getByRole('button', { name: /save/i });
+    await saveButton.click();
+    
+    // Wait for save to complete (edit mode closes)
+    await this.page.waitForSelector(`text="${newTitle}"`, { state: 'visible' });
+  }
+
+  /**
+   * Cancel editing a todo
+   * @param {string} title - The todo being edited
+   */
+  async cancelEditTodo(title) {
+    // Assumes already in edit mode
+    const cancelButton = this.page.getByRole('button', { name: /cancel/i });
+    await cancelButton.click();
   }
 
   /**

@@ -1,9 +1,14 @@
 /**
  * TODO Application - Critical User Journey Tests
  * 
- * Coverage: CRUD operations + error handling
+ * Coverage: CRUD operations (Create, Read, Update, Delete) + error handling
  * Test Count: 5 (maximum enforced)
  * Pattern: Page Object Model (POM)
+ * 
+ * Deferred (beyond 5-test limit):
+ * - Bulk operations (mark all complete, clear completed)
+ * - Filter by status (all/active/completed)
+ * - Persistent display on page reload
  */
 const { test, expect } = require('@playwright/test');
 const { TodoPage } = require('../pages/TodoPage');
@@ -11,7 +16,14 @@ const { TodoPage } = require('../pages/TodoPage');
 test.describe('TODO Application - Critical Journeys', () => {
   let todoPage;
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, request }) => {
+    // Clear all todos before each test for isolation
+    try {
+      await request.delete('http://localhost:3001/api/todos/reset');
+    } catch (error) {
+      // Ignore if endpoint doesn't exist (production mode)
+    }
+    
     todoPage = new TodoPage(page);
     await todoPage.goto();
     await todoPage.waitForLoad();
@@ -101,26 +113,23 @@ test.describe('TODO Application - Critical Journeys', () => {
   });
 
   /**
-   * Test 5: Display Todos on Load (Read Operation)
-   * Verifies: Existing todos are displayed when page loads
+   * Test 5: Edit Todo (Happy Path)
+   * Verifies: User can edit a todo's title and save changes
    */
-  test('should display todos on page load', async () => {
-    // Arrange - Add multiple todos
-    const todo1 = 'First todo item';
-    const todo2 = 'Second todo item';
+  test('should edit a todo', async () => {
+    // Arrange - Create a todo to edit
+    const originalText = 'Original task description';
+    const updatedText = 'Updated task description';
     
-    await todoPage.addTodo(todo1);
-    await todoPage.addTodo(todo2);
+    await todoPage.addTodo(originalText);
+    expect(await todoPage.todoExists(originalText)).toBe(true);
     
-    // Act - Reload the page
-    await todoPage.goto();
-    await todoPage.waitForLoad();
+    // Act - Edit the todo
+    await todoPage.editTodo(originalText, updatedText);
     
-    // Assert - Both todos should still be visible
-    await expect(todoPage.page.getByText(todo1)).toBeVisible();
-    await expect(todoPage.page.getByText(todo2)).toBeVisible();
-    
-    const count = await todoPage.getTodoCount();
-    expect(count).toBeGreaterThanOrEqual(2);
+    // Assert - Original text should be gone, new text should exist
+    await todoPage.page.waitForTimeout(500); // Give time for update
+    expect(await todoPage.todoExists(updatedText)).toBe(true);
+    expect(await todoPage.todoExists(originalText)).toBe(false);
   });
 });
