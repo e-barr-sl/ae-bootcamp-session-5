@@ -9,8 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 // In-memory data store for TODOs
-// INTENTIONAL ISSUE: This should be initialized as an empty array
-let todos = null;
+let todos = [];
 
 // INTENTIONAL ISSUE: Missing counter for ID generation
 // let nextId = 1;
